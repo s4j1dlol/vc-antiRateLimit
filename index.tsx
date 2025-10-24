@@ -5,31 +5,49 @@
  */
 
 import definePlugin from "@utils/types";
+import { findByPropsLazy } from "@webpack";
+
+const BannerClasses = findByPropsLazy("banner", "button");
+const BannerAPI = findByPropsLazy("showBanner", "hideBanner");
 
 export default definePlugin({
-    name: "RemoveAllBanners",
-    description: "Supprime tous les banners d'interface",
+    name: "NoMolloBanner",
+    description: "Supprime le banner 'Mollo l'asticot'",
     authors: [{ name: "s4j1dlol", id: 123456789n }],
 
+    patches: [
+        // Patch pour supprimer le banner rate limit
+        {
+            find: "BannerTypes.RATE_LIMIT",
+            replacement: {
+                match: /BannerTypes\.RATE_LIMIT/,
+                replace: "null"
+            }
+        },
+        // Patch alternatif pour le message français
+        {
+            find: "HE HO, MOLLO L'ASTICOT",
+            replacement: {
+                match: /"HE HO, MOLLO L'ASTICOT !"/,
+                replace: "null"
+            }
+        }
+    ],
+
     start() {
-        // Supprime tous les banners existants
-        const removeBanners = () => {
-            document.querySelectorAll('[class*="banner"], [class*="Banner"]').forEach(banner => {
-                if (banner.textContent?.includes("MOLLO L'ASTICOT") || 
-                    banner.textContent?.includes("trop rapidement")) {
+        // Méthode agressive - surveille et supprime immédiatement les banners
+        this.interval = setInterval(() => {
+            const banners = document.querySelectorAll('[class*="banner"], [class*="Banner"]');
+            banners.forEach(banner => {
+                const text = banner.textContent;
+                if (text?.includes("MOLLO L'ASTICOT") || text?.includes("trop rapidement")) {
                     banner.remove();
                 }
             });
-        };
-
-        // Surveille en continu
-        this.observer = new MutationObserver(removeBanners);
-        this.observer.observe(document.body, { childList: true, subtree: true });
-        
-        removeBanners();
+        }, 100);
     },
 
     stop() {
-        if (this.observer) this.observer.disconnect();
+        if (this.interval) clearInterval(this.interval);
     }
 });
