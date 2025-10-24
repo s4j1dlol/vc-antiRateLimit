@@ -5,30 +5,42 @@
  */
 
 import definePlugin from "@utils/types";
-import { findByPropsLazy } from "@webpack";
+import { MessageActions } from "@webpack/common";
 
-const MessageQueue = findByPropsLazy("sendMessage", "editMessage");
+// Stocke le timestamp du dernier message
+let lastMessageTime = 0;
 
 export default definePlugin({
     name: "AntiRateLimit",
-    description: "Contourne la limite d'envoi rapide de messages en les espaçant automatiquement",
+    description: "Contourne la limite d'envoi rapide de messages",
     authors: [{ name: "TonNom", id: 123456789n }],
 
     patches: [
         {
-            find: ".sendMessage=",
+            find: '("Message cannot be empty")',
             replacement: {
-                match: /\.sendMessage=function\((\i),\i\)/,
-                replace: "$&{return $self.sendMessage($1, ...arguments);}"
+                match: /(\i\.\i\.sendMessage=function\((\i),(\i)\){)/,
+                replace: '$1return $self.sendMessage($2,$3);'
             }
         }
     ],
 
-    sendMessage(original: Function, channelId: string, message: any) {
+    sendMessage(channelId: string, message: any) {
         return new Promise((resolve) => {
-            setTimeout(() => {
-                original(channelId, message).then(resolve);
-            }, 1100); // 1.1 secondes entre chaque message
+            const now = Date.now();
+            const timeSinceLastMessage = now - lastMessageTime;
+            const minDelay = 1100; // 1.1 seconde minimum entre les messages
+
+            if (timeSinceLastMessage < minDelay) {
+                const delay = minDelay - timeSinceLastMessage;
+                setTimeout(() => {
+                    lastMessageTime = Date.now();
+                    MessageActions.sendMessage(channelId, message).then(resolve);
+                }, delay);
+            } else {
+                lastMessageTime = now;
+                MessageActions.sendMessage(channelId, message).then(resolve);
+            }
         });
     }
 });
