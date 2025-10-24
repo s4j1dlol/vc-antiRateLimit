@@ -5,16 +5,31 @@
  */
 
 import definePlugin from "@utils/types";
-import { Toasts } from "@webpack/common";
 
 export default definePlugin({
-    name: "NoToasts",
-    description: "Désactive tous les messages toast",
+    name: "RemoveAllBanners",
+    description: "Supprime tous les banners d'interface",
     authors: [{ name: "s4j1dlol", id: 123456789n }],
 
     start() {
-        Toasts.show = function() { 
-            return null; 
+        // Supprime tous les banners existants
+        const removeBanners = () => {
+            document.querySelectorAll('[class*="banner"], [class*="Banner"]').forEach(banner => {
+                if (banner.textContent?.includes("MOLLO L'ASTICOT") || 
+                    banner.textContent?.includes("trop rapidement")) {
+                    banner.remove();
+                }
+            });
         };
+
+        // Surveille en continu
+        this.observer = new MutationObserver(removeBanners);
+        this.observer.observe(document.body, { childList: true, subtree: true });
+        
+        removeBanners();
+    },
+
+    stop() {
+        if (this.observer) this.observer.disconnect();
     }
 });
