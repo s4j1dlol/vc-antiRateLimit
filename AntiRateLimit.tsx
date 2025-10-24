@@ -7,13 +7,12 @@
 import definePlugin from "@utils/types";
 import { MessageActions } from "@webpack/common";
 
-// Stocke le timestamp du dernier message
 let lastMessageTime = 0;
 
 export default definePlugin({
     name: "AntiRateLimit",
     description: "Contourne la limite d'envoi rapide de messages",
-    authors: [{ name: "TonNom", id: 123456789n }],
+    authors: [{ name: "s4j1dlol", id: 123456789n }],
 
     patches: [
         {
@@ -29,7 +28,7 @@ export default definePlugin({
         return new Promise((resolve) => {
             const now = Date.now();
             const timeSinceLastMessage = now - lastMessageTime;
-            const minDelay = 1100; // 1.1 seconde minimum entre les messages
+            const minDelay = 1100;
 
             if (timeSinceLastMessage < minDelay) {
                 const delay = minDelay - timeSinceLastMessage;
