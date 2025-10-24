@@ -5,46 +5,42 @@
  */
 
 import definePlugin from "@utils/types";
-import { findByPropsLazy } from "@webpack";
-
-const BannerClasses = findByPropsLazy("banner", "button");
-const BannerAPI = findByPropsLazy("showBanner", "hideBanner");
 
 export default definePlugin({
-    name: "NoMolloBanner",
-    description: "Supprime le banner 'Mollo l'asticot'",
+    name: "RateLimitBlocker",
+    description: "Bloque l'envoi de messages quand y'a rate limit",
     authors: [{ name: "s4j1dlol", id: 123456789n }],
 
-    patches: [
-        // Patch pour supprimer le banner rate limit
-        {
-            find: "BannerTypes.RATE_LIMIT",
-            replacement: {
-                match: /BannerTypes\.RATE_LIMIT/,
-                replace: "null"
-            }
-        },
-        // Patch alternatif pour le message français
-        {
-            find: "HE HO, MOLLO L'ASTICOT",
-            replacement: {
-                match: /"HE HO, MOLLO L'ASTICOT !"/,
-                replace: "null"
-            }
-        }
-    ],
-
     start() {
-        // Méthode agressive - surveille et supprime immédiatement les banners
-        this.interval = setInterval(() => {
-            const banners = document.querySelectorAll('[class*="banner"], [class*="Banner"]');
-            banners.forEach(banner => {
-                const text = banner.textContent;
-                if (text?.includes("MOLLO L'ASTICOT") || text?.includes("trop rapidement")) {
-                    banner.remove();
+        let isRateLimited = false;
+
+        // Détecte quand le message apparaît
+        const checkRateLimit = () => {
+            const elements = document.querySelectorAll('*');
+            for (const element of elements) {
+                if (element.textContent?.includes("MOLLO L'ASTICOT")) {
+                    isRateLimited = true;
+                    console.log("Rate limit détecté - blocage des messages");
+                    setTimeout(() => {
+                        isRateLimited = false;
+                        console.log("Rate limit terminé");
+                    }, 5000); // 5 secondes
+                    break;
                 }
-            });
-        }, 100);
+            }
+        };
+
+        // Empêche l'envoi de messages pendant le rate limit
+        const originalSend = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.send = function(...args) {
+            if (isRateLimited && this._url?.includes("/messages")) {
+                console.log("Message bloqué à cause du rate limit");
+                return;
+            }
+            return originalSend.apply(this, args);
+        };
+
+        this.interval = setInterval(checkRateLimit, 1000);
     },
 
     stop() {
