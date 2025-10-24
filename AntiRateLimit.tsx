@@ -5,41 +5,19 @@
  */
 
 import definePlugin from "@utils/types";
-import { MessageActions } from "@webpack/common";
-
-let lastMessageTime = 0;
 
 export default definePlugin({
-    name: "AntiRateLimit",
-    description: "Contourne la limite d'envoi rapide de messages",
+    name: "NoRateLimitMessage", 
+    description: "Supprime le message rate limit",
     authors: [{ name: "s4j1dlol", id: 123456789n }],
 
     patches: [
         {
-            find: '("Message cannot be empty")',
+            find: ".displayName=\"ToastShowButton\"",
             replacement: {
-                match: /(\i\.\i\.sendMessage=function\((\i),(\i)\){)/,
-                replace: '$1return $self.sendMessage($2,$3);'
+                match: /show\(\{message:\i\.\i\.Messages\.SENDING_TOO_MANY_MESSAGES,/,
+                replace: "return null;"
             }
         }
-    ],
-
-    sendMessage(channelId: string, message: any) {
-        return new Promise((resolve) => {
-            const now = Date.now();
-            const timeSinceLastMessage = now - lastMessageTime;
-            const minDelay = 1100;
-
-            if (timeSinceLastMessage < minDelay) {
-                const delay = minDelay - timeSinceLastMessage;
-                setTimeout(() => {
-                    lastMessageTime = Date.now();
-                    MessageActions.sendMessage(channelId, message).then(resolve);
-                }, delay);
-            } else {
-                lastMessageTime = now;
-                MessageActions.sendMessage(channelId, message).then(resolve);
-            }
-        });
-    }
+    ]
 });
